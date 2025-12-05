@@ -45,10 +45,11 @@ var (
 	}
 	cmdAllFiles     = []string{"git", "ls-files", "--cached"}
 	cmdCreateStash  = []string{"git", "stash", "create"}
-	cmdStageFiles   = []string{"git", "add", "--force"}
+	cmdStageFiles   = []string{"git", "add", "--force", "--"}
 	cmdRemotes      = []string{"git", "branch", "--remotes"}
 	cmdHideUnstaged = []string{"git", "checkout", "--force", "--"}
 	cmdGitVersion   = []string{"git", "version"}
+	cmdHashObject   = []string{"git", "hash-object", "--"}
 )
 
 // Repository represents a git repository.
@@ -280,6 +281,7 @@ func (r *Repository) RestoreUnstaged() error {
 		"--whitespace=nowarn",
 		"--recount",
 		"--unidiff-zero",
+		"--",
 		r.unstagedPatchPath,
 	})
 	if err != nil {
@@ -360,19 +362,23 @@ func (r *Repository) AddFiles(files []string) error {
 }
 
 // Changeset returns a map of files and their hashes that are different from the index.
-// The hash for a deleted file is "deleted".
+// The hash for a deleted file is "deleted", and "directory" for a directory.
 func (r *Repository) Changeset() (map[string]string, error) {
-	changeset := make(map[string]string)
-	pathsToHash := make([]string, 0)
-
 	lines, err := r.statusShort()
 	if err != nil {
 		return nil, err
 	}
 
+	changeset := make(map[string]string)
+	pathsToHash := make([]string, 0, len(lines))
+
 	r.parseStatusShort(lines, func(path string, index, worktree byte) {
 		if index == 'D' || worktree == 'D' {
 			changeset[path] = "deleted"
+			return
+		}
+		if strings.HasSuffix(path, "/") {
+			changeset[path] = "directory"
 			return
 		}
 
@@ -383,7 +389,7 @@ func (r *Repository) Changeset() (map[string]string, error) {
 		return changeset, nil
 	}
 
-	out, err := r.Git.BatchedCmd([]string{"git", "hash-object"}, pathsToHash)
+	out, err := r.Git.BatchedCmd(cmdHashObject, pathsToHash)
 	if err != nil {
 		return nil, err
 	}
@@ -407,9 +413,8 @@ func (r *Repository) parseStatusShort(lines []string, cb func(path string, index
 		}
 
 		path := line[3:]
-		idx := strings.Index(path, "->")
-		if idx != -1 {
-			path = path[idx+3:]
+		if _, after, found := strings.Cut(path, " -> "); found {
+			path = after
 		}
 
 		if len(path) == 0 {

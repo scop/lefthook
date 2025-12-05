@@ -63,9 +63,9 @@ func Test_guard_wrap(t *testing.T) {
 			failOnChanges:        true,
 			commands: [][2]string{
 				{"git status --short --porcelain", " M file1\n M file2"},
-				{"git hash-object file1 file2", "0\n1\n"},
+				{"git hash-object -- file1 file2", "0\n1\n"},
 				{"git status --short --porcelain", " M file1\n M file2"},
-				{"git hash-object file1 file2", "0\n1\n"},
+				{"git hash-object -- file1 file2", "0\n1\n"},
 			},
 		},
 		"failOnChanges=true fail with changeset different": {
@@ -73,9 +73,10 @@ func Test_guard_wrap(t *testing.T) {
 			failOnChanges:        true,
 			commands: [][2]string{
 				{"git status --short --porcelain", " M file1\n M file2"},
-				{"git hash-object file1 file2", "0\n1\n"},
+				{"git hash-object -- file1 file2", "0\n1\n"},
 				{"git status --short --porcelain", " M file1\n M file2"},
-				{"git hash-object file1 file2", "2\n3\n"},
+				{"git hash-object -- file1 file2", "2\n3\n"},
+				{"git diff --color -- file1 file2", "diff --git a/file1 b/file1\n..."},
 			},
 			err: ErrFailOnChanges,
 		},
@@ -85,7 +86,8 @@ func Test_guard_wrap(t *testing.T) {
 			commands: [][2]string{
 				{"git status --short --porcelain", ""},
 				{"git status --short --porcelain", " M file1\n M file2"},
-				{"git hash-object file1 file2", "0\n1\n"},
+				{"git hash-object -- file1 file2", "0\n1\n"},
+				{"git diff --color -- file1 file2", "diff --git a/file1 b/file1\n..."},
 			},
 			err: ErrFailOnChanges,
 		},

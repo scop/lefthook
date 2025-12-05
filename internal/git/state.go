@@ -81,7 +81,6 @@ func (r *Repository) branch() string {
 	}()
 
 	scanner := bufio.NewScanner(file)
-	scanner.Split(bufio.ScanLines)
 
 	for scanner.Scan() {
 		match := refBranchRegexp.FindStringSubmatch(scanner.Text())
@@ -89,6 +88,9 @@ func (r *Repository) branch() string {
 		if match != nil {
 			return match[1]
 		}
+	}
+	if err = scanner.Err(); err != nil {
+		log.Warnf("Could not scan %s: %s", file.Name(), err)
 	}
 
 	return ""

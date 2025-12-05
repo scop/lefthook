@@ -114,10 +114,19 @@ func TestChangeset(t *testing.T) {
 			},
 		},
 		{
+			name:         "new dir",
+			gitStatusOut: "?? new-dir/",
+			pathsToHash:  []string{},
+			result: map[string]string{
+				"new-dir/": "directory",
+			},
+		},
+		{
 			name: "mixed changes",
 			gitStatusOut: `M  modified.txt
  D deleted.txt
 ?? new.txt
+?? new-dir/
 RM old-file -> new-file`,
 			gitHashOut:  "123456\n654321\n758213",
 			pathsToHash: []string{"modified.txt", "new.txt", "new-file"},
@@ -125,6 +134,7 @@ RM old-file -> new-file`,
 				"modified.txt": "123456",
 				"deleted.txt":  "deleted",
 				"new.txt":      "654321",
+				"new-dir/":     "directory",
 				"new-file":     "758213",
 			},
 		},
@@ -135,7 +145,7 @@ RM old-file -> new-file`,
 			}
 
 			if len(tt.pathsToHash) > 0 {
-				cmd := append([]string{"git", "hash-object"}, tt.pathsToHash...)
+				cmd := append([]string{"git", "hash-object", "--"}, tt.pathsToHash...)
 				gitCmds[strings.Join(cmd, " ")] = tt.gitHashOut
 			}
 
